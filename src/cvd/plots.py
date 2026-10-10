@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from matplotlib.ticker import PercentFormatter
+from matplotlib.ticker import FuncFormatter, NullFormatter, PercentFormatter
 from sklearn.calibration import calibration_curve
 from sklearn.metrics import average_precision_score, precision_recall_curve
 
@@ -111,6 +111,8 @@ def forest_plot(
     ax.errorbar(est, y, xerr=err, fmt="o", color=color, markersize=4, linewidth=1.3, label=label)
     ax.axvline(1.0, color=GREY, linestyle="--", linewidth=1)
     ax.set_xscale("log")
+    ax.xaxis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:g}"))
+    ax.xaxis.set_minor_formatter(NullFormatter())
     ax.set_yticks(np.arange(len(table))[::-1])
     ax.set_yticklabels(table.index)
     ax.set_xlabel(xlabel)

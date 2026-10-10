@@ -64,6 +64,42 @@ def odds_ratio_table(result, alpha: float = 0.05) -> pd.DataFrame:
     return table.drop(index="Intercept")
 
 
+def unadjusted_odds_ratios(
+    df: pd.DataFrame, features: list[str], target: str = TARGET
+) -> pd.DataFrame:
+    """Odds ratios from one single-predictor logistic regression per feature."""
+    return pd.concat([odds_ratio_table(fit_logit(df, [f], target)) for f in features])
+
+
+def logit_fit_summary(results: dict) -> pd.DataFrame:
+    """Fit statistics for several fitted Logit models, one row per model."""
+    rows = {
+        name: {
+            "n_obs": int(res.nobs),
+            "n_params": len(res.params),
+            "log_likelihood": res.llf,
+            "aic": res.aic,
+            "mcfadden_r2": res.prsquared,
+            "converged": bool(res.mle_retvals["converged"]),
+        }
+        for name, res in results.items()
+    }
+    return pd.DataFrame(rows).T
+
+
+def likelihood_ratio_test(restricted, full) -> dict[str, float]:
+    """Likelihood-ratio test of a nested (restricted) Logit against the full model."""
+    from scipy import stats as sps
+
+    statistic = 2 * (full.llf - restricted.llf)
+    dof = len(full.params) - len(restricted.params)
+    return {
+        "lr_stat": float(statistic),
+        "dof": int(dof),
+        "p_value": float(sps.chi2.sf(statistic, dof)),
+    }
+
+
 # --------------------------------------------------------------------------
 # Predictive pipelines (scikit-learn)
 # --------------------------------------------------------------------------

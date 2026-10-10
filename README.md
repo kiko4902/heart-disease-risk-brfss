@@ -128,6 +128,8 @@ make docker                                      # docker build -t heart-disease
 docker run --rm -p 8501:8501 heart-disease-risk-app
 ```
 
+Then open http://localhost:8501 (use http://127.0.0.1:8501 if `localhost` does not respond, which can happen with Docker Desktop on Windows).
+
 ## Project structure
 
 ```

@@ -24,6 +24,7 @@ data:  ## Download CVD_cleaned.csv into data/
 notebooks:  ## Execute all notebooks top to bottom on a fresh kernel (also trains and saves the models)
 	$(PY) -m nbconvert --to notebook --execute --inplace \
 		--ExecutePreprocessor.timeout=3600 --ExecutePreprocessor.kernel_name=python3 \
+		--ExecutePreprocessor.record_timing=False \
 		notebooks/01_eda.ipynb notebooks/02_statistical_analysis.ipynb \
 		notebooks/03_logistic_regression.ipynb notebooks/04_predictive_model.ipynb
 

@@ -192,3 +192,98 @@ def format_p(p: float) -> str:
     if p < 0.001:
         return f"{p:.1e}"
     return f"{p:.3f}"
+
+
+def categorical_association_table(
+    df: pd.DataFrame, contrasts: dict[str, tuple[str, str]], target: str
+) -> pd.DataFrame:
+    """Chi-square test, Cramér's V and one headline contrast per categorical factor.
+
+    ``contrasts`` maps each factor to ``(exposed_level, reference_level)``. The risk
+    ratio and risk difference (95% CI) compare those two levels.
+    """
+    rows = []
+    for factor, (exposed, reference) in contrasts.items():
+        test = chi2_test(df[factor], df[target])
+        levels = prevalence_table(df, factor, target, reference=reference)
+        rows.append(
+            {
+                "factor": factor,
+                "levels": len(levels),
+                "chi2": test["chi2"],
+                "dof": test["dof"],
+                "p_value": test["p_value"],
+                "cramers_v": test["cramers_v"],
+                "min_expected": test["min_expected"],
+                "contrast": f"{exposed} vs {reference}",
+                "prev_exposed": levels.loc[exposed, "prevalence"],
+                "prev_reference": levels.loc[reference, "prevalence"],
+                "risk_ratio": levels.loc[exposed, "rr"],
+                "rr_low": levels.loc[exposed, "rr_low"],
+                "rr_high": levels.loc[exposed, "rr_high"],
+                "risk_diff": levels.loc[exposed, "rd"],
+                "rd_low": levels.loc[exposed, "rd_low"],
+                "rd_high": levels.loc[exposed, "rd_high"],
+            }
+        )
+    return pd.DataFrame(rows).set_index("factor")
+
+
+def numeric_association_table(
+    df: pd.DataFrame,
+    columns: list[str],
+    target: str,
+    n_boot: int = 1000,
+    boot_sample: int | None = 50_000,
+    seed: int = SEED,
+) -> pd.DataFrame:
+    """Compare each numeric column between target = 1 and target = 0.
+
+    Point estimates (Mann-Whitney U p-value, rank-biserial r, Cohen's d) use all
+    rows. The percentile bootstrap CIs use a seeded random subsample of
+    ``boot_sample`` rows to keep the run time reasonable; pass ``None`` to
+    bootstrap the full data.
+    """
+    boot_df = (
+        df
+        if boot_sample is None or boot_sample >= len(df)
+        else df.sample(boot_sample, random_state=seed)
+    )
+    rows = []
+    for col in columns:
+        pos, neg = df.loc[df[target] == 1, col], df.loc[df[target] == 0, col]
+        boot_pos = boot_df.loc[boot_df[target] == 1, col]
+        boot_neg = boot_df.loc[boot_df[target] == 0, col]
+        r_low, r_high = bootstrap_ci(boot_pos, boot_neg, rank_biserial, n_boot=n_boot, seed=seed)
+        d_low, d_high = bootstrap_ci(boot_pos, boot_neg, cohens_d, n_boot=n_boot, seed=seed)
+        rows.append(
+            {
+                "variable": col,
+                "mean_hd": pos.mean(),
+                "mean_no_hd": neg.mean(),
+                "median_hd": pos.median(),
+                "median_no_hd": neg.median(),
+                "p_value": stats.mannwhitneyu(pos, neg, alternative="two-sided").pvalue,
+                "rank_biserial": rank_biserial(pos, neg),
+                "rb_low": r_low,
+                "rb_high": r_high,
+                "cohens_d": cohens_d(pos, neg),
+                "d_low": d_low,
+                "d_high": d_high,
+            }
+        )
+    return pd.DataFrame(rows).set_index("variable")
+
+
+def mean_difference_ci(a, b, alpha: float = 0.05) -> dict[str, float]:
+    """Difference in means (a - b) with a Welch confidence interval and p-value."""
+    a, b = np.asarray(a, dtype=float), np.asarray(b, dtype=float)
+    result = stats.ttest_ind(a, b, equal_var=False)
+    ci = result.confidence_interval(1 - alpha)
+    return {
+        "mean_diff": float(a.mean() - b.mean()),
+        "ci_low": float(ci.low),
+        "ci_high": float(ci.high),
+        "p_value": float(result.pvalue),
+        "cohens_d": cohens_d(a, b),
+    }

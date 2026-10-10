@@ -231,3 +231,57 @@ def histogram_by_target(
     ax.set_title(title)
     ax.legend()
     return ax
+
+
+def ecdf_by_target(
+    df: pd.DataFrame, column: str, target: str, ax: plt.Axes, title: str, xlabel: str, xmax: float
+) -> plt.Axes:
+    """Empirical CDFs of a numeric column for target = 0 and 1."""
+    for value, name in [(0, "No heart disease"), (1, "Heart disease")]:
+        values = np.sort(df.loc[df[target] == value, column].to_numpy())
+        ax.step(
+            values,
+            np.arange(1, len(values) + 1) / len(values),
+            where="post",
+            color=TARGET_PALETTE[value],
+            linewidth=1.6,
+            label=name,
+        )
+    ax.set_xlim(0, xmax)
+    ax.set_ylim(0, 1)
+    ax.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel("Share at or below value")
+    ax.set_title(title)
+    return ax
+
+
+def group_means(
+    df: pd.DataFrame,
+    outcome: str,
+    group: str,
+    ax: plt.Axes,
+    title: str,
+    ylabel: str,
+    hue: str | None = None,
+) -> plt.Axes:
+    """Group means with 95% CIs; with ``hue`` one line per hue level."""
+    hue_levels = [None] if hue is None else list(df[hue].cat.categories)
+    for level, color in zip(hue_levels, [BLUE, RED, GREY], strict=False):
+        subset = df if level is None else df[df[hue] == level]
+        summary = subset.groupby(group, observed=True)[outcome].agg(["mean", "sem"])
+        ax.errorbar(
+            [str(i) for i in summary.index],
+            summary["mean"],
+            yerr=1.96 * summary["sem"],
+            marker="o",
+            capsize=4,
+            color=color if level is not None else "black",
+            label=level,
+        )
+    ax.set_title(title)
+    ax.set_ylabel(ylabel)
+    ax.margins(x=0.4)
+    if hue is not None:
+        ax.legend(title=hue.replace("_", " ").capitalize())
+    return ax

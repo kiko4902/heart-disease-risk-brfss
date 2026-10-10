@@ -42,3 +42,11 @@ Judgment calls made while building the project, one line each: what was decided 
 - **Tree features use one integer column per variable** (ordered codes; diabetes ordered by severity) instead of one-hot columns, so SHAP reports one contribution per original variable.
 - **SHAP values are computed on a seeded sample of 5,000 test rows.** Enough for stable global importance, and it keeps the notebook fast.
 - **PR-AUC intervals are a 500-resample bootstrap of the test rows.**
+
+## App
+
+- **The app offers both saved models, defaulting to "all predictors".** The lifestyle-only option lets a user see an estimate that does not depend on self-rated health or diagnoses, which mirrors the comparison in notebooks 3 and 4.
+- **The form asks for height and weight and computes BMI.** People know their height and weight, not their BMI; inputs are limited to the plausibility ranges from notebook 1.
+- **SHAP contributions are shown in log-odds, as a bar chart of the eight largest.** Log-odds contributions add up exactly; converting each to percentage points would not.
+- **The Docker image copies `models/` from the build context and installs the full `requirements.txt`.** One lock file for everything keeps versions identical between training and serving, at the cost of a larger image; the data is not needed at run time.
+- **App tests train a tiny model on synthetic data** (Streamlit `AppTest`), so the test suite runs without the dataset or the saved models.

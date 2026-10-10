@@ -113,6 +113,21 @@ make lint        # ruff check and format check
 
 `make notebooks` takes a few minutes on a laptop. All random steps use seed 42.
 
+## Interactive app
+
+A small Streamlit app takes the model's inputs, returns the estimated probability next to the survey average, and shows a SHAP breakdown of what moved the estimate. It is an educational demo of the model, not a health tool, and says so on the page.
+
+```bash
+make app                                         # http://localhost:8501 (needs models/ from `make notebooks`)
+```
+
+With Docker (the image copies `models/`, so run `make notebooks` first):
+
+```bash
+make docker                                      # docker build -t heart-disease-risk-app .
+docker run --rm -p 8501:8501 heart-disease-risk-app
+```
+
 ## Project structure
 
 ```
@@ -122,7 +137,7 @@ make lint        # ruff check and format check
 ├── notebooks/            01_eda, 02_statistical_analysis, 03_logistic_regression, 04_predictive_model
 ├── reports/figures/      figures used in this README
 ├── tests/                pytest suite for src/
-├── app/                  Streamlit app
+├── app/                  Streamlit app (Dockerfile in the project root)
 ├── archive/              the original exam notebook and its review
 ├── DECISIONS.md          judgment calls and their reasons
 ├── Makefile, pyproject.toml, requirements.in, requirements.txt

@@ -1,19 +1,40 @@
-# Data and trained models are reproducible, not versioned
+# Data is downloaded by `make data`, never versioned
 data/*.csv
 data/*.zip
+
+# Trained models: only the small app bundle in app/model/ is versioned
 models/
+*.joblib
+!app/model/heart_disease_models.joblib
 
 # Python
 .venv/
+venv/
 __pycache__/
 *.py[cod]
 *.egg-info/
+build/
+dist/
 .pytest_cache/
 .ruff_cache/
 .ipynb_checkpoints/
 
-# OS / editor
-.DS_Store
-Thumbs.db
+# Local environment and secrets
+.env
+.env.*
+.streamlit/secrets.toml
+kaggle.json
+
+# Editor, assistant and OS files
 .vscode/
 .idea/
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+.cursor/
+.aider*
+*.swp
+*.tmp
+*.log
+.DS_Store
+Thumbs.db

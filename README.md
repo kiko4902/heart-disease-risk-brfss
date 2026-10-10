@@ -108,7 +108,7 @@ Requires Python 3.12 and `make` (on Windows, run from Git Bash). `make setup` us
 ```bash
 make setup       # create .venv and install pinned dependencies
 make data        # download CVD_cleaned.csv (32 MB) and verify its checksum
-make notebooks   # execute all four notebooks on a fresh kernel; trains and saves the models
+make notebooks   # execute all four notebooks on a fresh kernel; retrains and saves the models
 make test        # unit tests
 make lint        # ruff check and format check
 ```
@@ -117,20 +117,35 @@ make lint        # ruff check and format check
 
 ## Interactive app
 
-A small Streamlit app takes the model's inputs, returns the estimated probability next to the survey average, and shows a SHAP breakdown of what moved the estimate. It is an educational demo of the model, not a health tool, and says so on the page.
+**Live demo:** _link to be added after deployment_ <!-- replace with the Streamlit Community Cloud URL -->
+
+A small Streamlit app takes the model's inputs, returns the estimated probability next to the survey average, and shows a breakdown of what moved the estimate (exact TreeSHAP contributions from LightGBM). It is an educational demo of the model, not a health tool, and says so on the page.
+
+The trained models (0.6 MB) are versioned in `app/model/`, so the app runs without the data or any training step.
+
+**Run locally**
 
 ```bash
-make app                                         # http://localhost:8501 (needs models/ from `make notebooks`)
+make app                                         # http://localhost:8501
 ```
 
-With Docker (the image copies `models/`, so run `make notebooks` first):
+**Run with Docker**
 
 ```bash
 make docker                                      # docker build -t heart-disease-risk-app .
 docker run --rm -p 8501:8501 heart-disease-risk-app
 ```
 
-Then open http://localhost:8501 (use http://127.0.0.1:8501 if `localhost` does not respond, which can happen with Docker Desktop on Windows).
+Then open http://localhost:8501 (use http://127.0.0.1:8501 if `localhost` does not respond, which can happen with Docker Desktop on Windows). The image is a multi-stage build on `python:3.12-slim` that installs only the app's dependencies from `requirements-app.txt`.
+
+**Deploy on Streamlit Community Cloud**
+
+1. Sign in at [share.streamlit.io](https://share.streamlit.io) with GitHub and choose "Create app" from an existing repo.
+2. Repository `kiko4902/heart-disease-risk-brfss`, branch `main`, main file path `app/app.py`.
+3. Under "Advanced settings", select Python 3.12 (the models were trained and pinned on 3.12).
+4. Deploy, then paste the app URL into the "Live demo" line above.
+
+Nothing else needs configuring: the platform installs `app/requirements.txt` (a copy of the app lock, because it looks for a requirements file next to the entry point) and the system package listed in `packages.txt` (`libgomp1`, which LightGBM needs). The app adds `src/` to the import path itself when the `cvd` package is not installed.
 
 ## Project structure
 
@@ -141,10 +156,14 @@ Then open http://localhost:8501 (use http://127.0.0.1:8501 if `localhost` does n
 ├── notebooks/            01_eda, 02_statistical_analysis, 03_logistic_regression, 04_predictive_model
 ├── reports/figures/      figures used in this README
 ├── tests/                pytest suite for src/
-├── app/                  Streamlit app (Dockerfile in the project root)
+├── app/                  Streamlit app, its requirements, and the trained models (app/model/)
 ├── archive/              the original exam notebook, unchanged
 ├── DECISIONS.md          judgment calls and their reasons
-├── Makefile, pyproject.toml, requirements.in, requirements.txt
+├── .github/workflows/    CI: ruff and pytest on every push and pull request
+├── Dockerfile            slim multi-stage image for the app
+├── requirements.in/.txt          pinned lock for the analysis (Python 3.12)
+├── requirements-app.in/.txt      app-only lock, constrained to the same versions
+├── Makefile, pyproject.toml, packages.txt
 ```
 
 ## Project history

@@ -47,7 +47,12 @@ Judgment calls made while building the project, one line each: what was decided 
 - **The app offers both saved models, defaulting to "all predictors".** The lifestyle-only option lets a user see an estimate that does not depend on self-rated health or diagnoses, which mirrors the comparison in notebooks 3 and 4.
 - **The form asks for height and weight and computes BMI.** People know their height and weight, not their BMI; inputs are limited to the plausibility ranges from notebook 1.
 - **SHAP contributions are shown in log-odds, as a bar chart of the eight largest.** Log-odds contributions add up exactly; converting each to percentage points would not.
-- **The Docker image copies `models/` from the build context and installs the full `requirements.txt`.** One lock file for everything keeps versions identical between training and serving, at the cost of a larger image; the data is not needed at run time.
+- **The trained models are versioned in `app/model/`.** The bundle is 0.6 MB and byte-identical across retraining runs, so committing it costs nothing and lets the app deploy (Docker, Streamlit Community Cloud) without the data or a training step.
+- **The app has its own lock, `requirements-app.txt`, compiled with the main lock as a constraint.** It holds only what the app imports; a test checks that every pin matches `requirements.txt`, so the app runs on the library versions the models were trained with.
+- **The app computes contributions with LightGBM's built-in TreeSHAP (`pred_contrib`) instead of the `shap` package.** The values are identical (tested), and it removes `shap`, `numba` and `llvmlite` from the app image. The notebooks still use `shap` for its plots.
+- **`statsmodels` is imported inside `fit_logit`.** The app imports `cvd.models` and should not need the regression stack.
+- **Multi-stage Docker build on `python:3.12-slim`, running as a non-root user.** Dependencies are installed into a virtual environment in the build stage and copied over; only `src/`, `app/` and the app lock enter the build context.
+- **`app/requirements.txt` is a copy of `requirements-app.txt`** because Streamlit Community Cloud installs the requirements file next to the entry point; a test keeps the two identical and `make lock` regenerates both.
 - **App tests train a tiny model on synthetic data** (Streamlit `AppTest`), so the test suite runs without the dataset or the saved models.
 
 ## Scope relative to the original exam notebook

@@ -117,8 +117,7 @@ make lint        # ruff check and format check
 
 ## Interactive app
 
-**Live demo:** _link to be added after deployment_ <!-- replace with the Streamlit Community Cloud URL -->
-
+**Live demo:**  https://heart-disease-risk-brfss.streamlit.app/
 A small Streamlit app takes the model's inputs, returns the estimated probability next to the survey average, and shows a breakdown of what moved the estimate (exact TreeSHAP contributions from LightGBM). It is an educational demo of the model, not a health tool, and says so on the page.
 
 The trained models (0.6 MB) are versioned in `app/model/`, so the app runs without the data or any training step.

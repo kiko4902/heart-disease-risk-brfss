@@ -11,7 +11,6 @@ Judgment calls made while building the project, one line each: what was decided 
 - **`requirements.in` plus a compiled `requirements.txt`.** The pinned file is a universal `uv pip compile` lock, so the same file installs on Windows, macOS and Linux (Docker). `requirements.in` lists the direct dependencies.
 - **`make setup` uses `uv` when available and falls back to `python3.12 -m venv` + pip.** `uv` can fetch Python 3.12 itself; the fallback keeps the Makefile usable without it.
 - **Download script uses Kaggle's public download URL, not the `kaggle` package.** The dataset is CC0 and downloads without credentials; credentials are sent if present, and manual instructions are printed on failure. The file is verified by SHA-256.
-- **Added `archive/REVIEW.md`** next to the original notebook. The README links to it to show what was wrong with the exam version and why the project was rebuilt.
 - **Consumption units are an assumption** ("times per month"; alcohol "days in past 30"). The Kaggle page does not document them; see `data/README.md` for the evidence.
 
 ## Exploration and statistics
@@ -51,9 +50,9 @@ Judgment calls made while building the project, one line each: what was decided 
 - **The Docker image copies `models/` from the build context and installs the full `requirements.txt`.** One lock file for everything keeps versions identical between training and serving, at the cost of a larger image; the data is not needed at run time.
 - **App tests train a tiny model on synthetic data** (Streamlit `AppTest`), so the test suite runs without the dataset or the saved models.
 
-## Scope relative to the review of the exam notebook
+## Scope relative to the original exam notebook
 
-- **Height survives only as the outcome of the confounding sidebar.** The review said to drop height as an outcome and to keep the smoking, height and sex story as a short demonstration; the sidebar in notebook 2 is that demonstration and nothing else uses height.
-- **The Kruskal-Wallis and Dunn post-hoc sequence from the exam notebook was not carried over.** The review suggested keeping it as a pattern, but every multi-level predictor here is compared against a binary outcome, where chi-square with per-level risk ratios answers the question more directly.
+- **Height survives only as the outcome of the confounding sidebar.** The exam notebook used height as its main outcome, which has nothing to do with heart disease. Only the smoking, height and sex story is kept, as a short demonstration in notebook 2; nothing else uses height.
+- **The Kruskal-Wallis and Dunn post-hoc sequence from the exam notebook was not carried over.** It is a sound pattern, but every multi-level predictor here is compared against a binary outcome, where chi-square with per-level risk ratios answers the question more directly.
 - **`make notebooks` runs with `record_timing=False`.** Execution timestamps would otherwise change the committed notebooks on every run.
 - **The fresh-environment check was run in a short temporary path.** On Windows a deep clone path exceeds the 260-character limit inside `site-packages`; this is a property of the path, not of the project.

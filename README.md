@@ -140,14 +140,14 @@ Then open http://localhost:8501 (use http://127.0.0.1:8501 if `localhost` does n
 ├── reports/figures/      figures used in this README
 ├── tests/                pytest suite for src/
 ├── app/                  Streamlit app (Dockerfile in the project root)
-├── archive/              the original exam notebook and its review
+├── archive/              the original exam notebook, unchanged
 ├── DECISIONS.md          judgment calls and their reasons
 ├── Makefile, pyproject.toml, requirements.in, requirements.txt
 ```
 
-## Background
+## Project history
 
-This project started as a university exam notebook for a statistical data analysis course. That version ran a handful of tests on the first 5,000 rows and never analysed the target variable. A [written review](archive/REVIEW.md) of it listed what was wrong, and this repository is the rebuild. The [original notebook](archive/original_exam_notebook.ipynb) is kept unchanged for comparison.
+This project started as a university exam notebook for a statistical data analysis course. It was then reworked from the ground up to focus on the target variable, to report effect sizes with confidence intervals instead of bare p-values, and to add regression and predictive modelling. The [original notebook](archive/original_exam_notebook.ipynb) is kept unchanged for comparison.
 
 ## Licence
 

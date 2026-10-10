@@ -1,5 +1,7 @@
 # Heart disease risk in BRFSS 2021: what is associated with it, and how well can it be predicted?
 
+[![CI](https://github.com/kiko4902/heart-disease-risk-brfss/actions/workflows/ci.yml/badge.svg)](https://github.com/kiko4902/heart-disease-risk-brfss/actions/workflows/ci.yml)
+
 An end-to-end analysis of 308,774 US survey respondents: which lifestyle and health factors go with heart disease, which of those associations survive adjustment, and how far a model can predict it.
 
 ## Key findings

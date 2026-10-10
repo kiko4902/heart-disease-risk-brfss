@@ -159,3 +159,33 @@ def test_bundle_roundtrip(tmp_path, monkeypatch):
     assert models.load_bundle("x.joblib") == {"a": 1}
     with pytest.raises(FileNotFoundError, match="make notebooks"):
         models.load_bundle("missing.joblib")
+
+
+def test_shap_explanation_shows_readable_values(df):
+    feats = features.FEATURES_LIFESTYLE
+    pipe = models.make_lgbm_pipeline(feats, n_estimators=10, min_child_samples=10)
+    pipe.fit(df[feats], df[TARGET])
+    explanation = models.shap_values(pipe, df[feats].iloc[:5])
+    assert explanation.feature_names[0] == "Sex"
+    assert explanation.display_data[0, 0] in {"Female", "Male"}
+    assert explanation.data.dtype == float
+
+
+def test_threshold_table_reaches_target_recall():
+    rng = np.random.default_rng(0)
+    y = (rng.random(3000) < 0.1).astype(int)
+    prob = np.clip(0.1 + 0.2 * y + rng.normal(0, 0.1, 3000), 0, 1)
+    table = models.threshold_table(y, prob, [0.5, 0.8])
+    assert (table["recall"] >= table.index.to_numpy()).all()
+    assert table.loc[0.8, "threshold"] < table.loc[0.5, "threshold"]
+    assert table.loc[0.8, "flagged_share"] > table.loc[0.5, "flagged_share"]
+
+
+def test_bootstrap_metric_ci_is_seeded():
+    rng = np.random.default_rng(0)
+    y = (rng.random(500) < 0.2).astype(int)
+    prob = np.clip(0.2 + 0.3 * y + rng.normal(0, 0.15, 500), 0, 1)
+    metric = lambda a, b: models.probability_metrics(a, b)["pr_auc"]  # noqa: E731
+    first = models.bootstrap_metric_ci(y, prob, metric, n_boot=50)
+    assert first == models.bootstrap_metric_ci(y, prob, metric, n_boot=50)
+    assert first[0] < metric(y, prob) < first[1]

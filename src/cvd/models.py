@@ -24,7 +24,7 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.pipeline import Pipeline
 
 from cvd import SEED
-from cvd.data import PROJECT_ROOT, TARGET
+from cvd.data import LABELS, PROJECT_ROOT, TARGET
 from cvd.features import TreeEncoder, logit_design_matrix, make_linear_preprocessor
 
 MODELS_DIR = PROJECT_ROOT / "models"
@@ -191,19 +191,61 @@ def best_fbeta_threshold(y_true, y_prob, beta: float = 2.0) -> float:
     return float(thresholds[int(np.argmax(fbeta))])
 
 
+def threshold_table(y_true, y_prob, recalls: list[float]) -> pd.DataFrame:
+    """Operating points: for each target recall, the highest threshold that reaches it."""
+    precision, recall, thresholds = precision_recall_curve(y_true, y_prob)
+    rows = []
+    for target in recalls:
+        idx = np.where(recall[:-1] >= target)[0][-1]
+        rows.append({"target_recall": target, **threshold_metrics(y_true, y_prob, thresholds[idx])})
+    return pd.DataFrame(rows).set_index("target_recall")
+
+
+def bootstrap_metric_ci(
+    y_true, y_prob, metric, n_boot: int = 500, alpha: float = 0.05, seed: int = SEED
+) -> tuple[float, float]:
+    """Percentile bootstrap CI of a metric(y_true, y_prob) over resampled rows."""
+    y_true, y_prob = np.asarray(y_true), np.asarray(y_prob)
+    rng = np.random.default_rng(seed)
+    estimates = np.empty(n_boot)
+    for i in range(n_boot):
+        idx = rng.integers(0, len(y_true), len(y_true))
+        estimates[i] = metric(y_true[idx], y_prob[idx])
+    low, high = np.quantile(estimates, [alpha / 2, 1 - alpha / 2])
+    return float(low), float(high)
+
+
 def shap_values(pipeline: Pipeline, X: pd.DataFrame):
     """SHAP explanation (log-odds scale) for a fitted LightGBM pipeline.
 
-    Returns a ``shap.Explanation`` whose ``data`` is the encoded feature matrix.
+    Returns a ``shap.Explanation`` whose ``data`` is the encoded feature matrix and
+    whose ``display_data`` holds the original, readable values.
     """
     import shap
 
-    encoded = pipeline.named_steps["prep"].transform(X)
+    encoder = pipeline.named_steps["prep"]
+    encoded = encoder.transform(X)
     explainer = shap.TreeExplainer(pipeline.named_steps["model"])
-    explanation = explainer(encoded)
-    if explanation.values.ndim == 3:  # some versions return one slice per class
-        explanation = explanation[:, :, 1]
-    return explanation
+    raw = explainer(encoded)
+    values, base = raw.values, np.asarray(raw.base_values)
+    if values.ndim == 3:  # some versions return one slice per class
+        values, base = values[:, :, 1], base[:, 1]
+    return shap.Explanation(
+        values=values,
+        base_values=base,
+        data=encoded.to_numpy(dtype=float),
+        display_data=_display_values(X[encoder.features]),
+        feature_names=[LABELS[f] for f in encoder.features],
+    )
+
+
+def _display_values(X: pd.DataFrame) -> np.ndarray:
+    """Original labels (not integer codes) for showing next to SHAP values."""
+    shown = X.astype(object).copy()
+    for col in X.columns:
+        if pd.api.types.is_numeric_dtype(X[col]):
+            shown[col] = X[col].map(lambda v: f"{v:g}")
+    return shown.to_numpy(dtype=object)
 
 
 # --------------------------------------------------------------------------

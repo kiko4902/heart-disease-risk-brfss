@@ -287,3 +287,19 @@ def group_means(
     if hue is not None:
         ax.legend(title=hue.replace("_", " ").capitalize())
     return ax
+
+
+def threshold_curve(y_true, y_prob, ax: plt.Axes, title: str, chosen: float | None = None):
+    """Precision and recall as a function of the decision threshold."""
+    precision, recall, thresholds = precision_recall_curve(y_true, y_prob)
+    ax.plot(thresholds, precision[:-1], color=BLUE, linewidth=1.8, label="Precision")
+    ax.plot(thresholds, recall[:-1], color=RED, linewidth=1.8, label="Recall")
+    if chosen is not None:
+        ax.axvline(chosen, color=GREY, linestyle="--", linewidth=1.2, label=f"Chosen: {chosen:.3f}")
+    ax.set_xlim(0, min(1.0, float(np.quantile(y_prob, 0.999))))
+    ax.set_ylim(0, 1)
+    ax.set_xlabel("Decision threshold on predicted probability")
+    ax.set_ylabel("Precision / recall")
+    ax.set_title(title)
+    ax.legend(loc="upper right")
+    return ax

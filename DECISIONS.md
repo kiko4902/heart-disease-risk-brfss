@@ -50,3 +50,10 @@ Judgment calls made while building the project, one line each: what was decided 
 - **SHAP contributions are shown in log-odds, as a bar chart of the eight largest.** Log-odds contributions add up exactly; converting each to percentage points would not.
 - **The Docker image copies `models/` from the build context and installs the full `requirements.txt`.** One lock file for everything keeps versions identical between training and serving, at the cost of a larger image; the data is not needed at run time.
 - **App tests train a tiny model on synthetic data** (Streamlit `AppTest`), so the test suite runs without the dataset or the saved models.
+
+## Scope relative to the review of the exam notebook
+
+- **Height survives only as the outcome of the confounding sidebar.** The review said to drop height as an outcome and to keep the smoking, height and sex story as a short demonstration; the sidebar in notebook 2 is that demonstration and nothing else uses height.
+- **The Kruskal-Wallis and Dunn post-hoc sequence from the exam notebook was not carried over.** The review suggested keeping it as a pattern, but every multi-level predictor here is compared against a binary outcome, where chi-square with per-level risk ratios answers the question more directly.
+- **`make notebooks` runs with `record_timing=False`.** Execution timestamps would otherwise change the committed notebooks on every run.
+- **The fresh-environment check was run in a short temporary path.** On Windows a deep clone path exceeds the 260-character limit inside `site-packages`; this is a property of the path, not of the project.

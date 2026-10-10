@@ -166,6 +166,25 @@ def partial_eta_squared(anova_table: pd.DataFrame) -> pd.Series:
     return (effects["sum_sq"] / (effects["sum_sq"] + ss_resid)).rename("partial_eta_sq")
 
 
+def binned_prevalence(
+    df: pd.DataFrame, column: str, target: str, bins: list[float], labels: list[str]
+) -> pd.DataFrame:
+    """Prevalence of a 0/1 target within bins of a numeric column (left-closed bins)."""
+    binned = pd.cut(df[column], bins=bins, labels=labels, right=False)
+    table = df.groupby(binned, observed=True)[target].agg(n="size", prevalence="mean")
+    table.index.name = column
+    return table
+
+
+def wilson_ci(events: int, n: int, alpha: float = 0.05) -> tuple[float, float]:
+    """Wilson score confidence interval for a proportion."""
+    z = stats.norm.ppf(1 - alpha / 2)
+    p = events / n
+    centre = (p + z**2 / (2 * n)) / (1 + z**2 / n)
+    half = z * np.sqrt(p * (1 - p) / n + z**2 / (4 * n**2)) / (1 + z**2 / n)
+    return float(centre - half), float(centre + half)
+
+
 def format_p(p: float) -> str:
     """Human-readable p-value that never prints a misleading 0.0."""
     if p < 1e-300:

@@ -62,21 +62,16 @@ def prevalence_bar(
     base_rate: float | None = None,
     annotate: bool = True,
     rotate: int = 0,
+    ylabel: bool = True,
 ) -> plt.Axes:
     """Bar chart of target prevalence per level (expects a ``prevalence`` column)."""
     labels = [str(i) for i in table.index]
     bars = ax.bar(labels, table["prevalence"], color=BLUE, width=0.75)
     if base_rate is not None:
-        ax.axhline(base_rate, color=RED, linestyle="--", linewidth=1.2)
-        ax.text(
-            len(labels) - 0.5,
-            base_rate,
-            f" overall {base_rate:.1%}",
-            color=RED,
-            va="bottom",
-            ha="right",
-            fontsize=9,
+        ax.axhline(
+            base_rate, color=RED, linestyle="--", linewidth=1.2, label=f"Overall {base_rate:.1%}"
         )
+        ax.legend(loc="best", fontsize=8, handlelength=1.6)
     if annotate:
         for bar, value in zip(bars, table["prevalence"], strict=True):
             ax.text(
@@ -88,7 +83,7 @@ def prevalence_bar(
                 fontsize=8,
             )
     ax.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
-    ax.set_ylabel("Heart disease prevalence")
+    ax.set_ylabel("Heart disease prevalence" if ylabel else "")
     ax.set_xlabel(xlabel)
     ax.set_title(title)
     ax.grid(axis="x", visible=False)
@@ -172,4 +167,67 @@ def horizontal_bar(
     ax.set_xlabel(xlabel)
     ax.set_title(title)
     ax.grid(axis="y", visible=False)
+    return ax
+
+
+def prevalence_grid(
+    df: pd.DataFrame,
+    columns: list[str],
+    target: str,
+    labels: dict[str, str],
+    ncols: int = 2,
+    suptitle: str | None = None,
+) -> plt.Figure:
+    """Grid of prevalence bar charts, one panel per categorical column, shared y-axis."""
+    nrows = int(np.ceil(len(columns) / ncols))
+    fig, axes = plt.subplots(nrows, ncols, figsize=(6 * ncols, 3.6 * nrows), sharey=True)
+    axes = np.atleast_1d(axes).ravel()
+    base_rate = df[target].mean()
+    for i, (ax, col) in enumerate(zip(axes, columns, strict=False)):
+        table = df.groupby(col, observed=True)[target].agg(prevalence="mean")
+        rotate = 20 if max(len(str(i)) for i in table.index) > 12 else 0
+        prevalence_bar(
+            table, ax, labels[col], "", base_rate=base_rate, rotate=rotate, ylabel=i % ncols == 0
+        )
+    for ax in axes[len(columns) :]:
+        ax.set_visible(False)
+    if suptitle:
+        fig.suptitle(suptitle, x=0.01, ha="left", fontsize=14, fontweight="bold")
+    fig.tight_layout()
+    return fig
+
+
+def discrete_distribution(
+    series: pd.Series, ax: plt.Axes, title: str, xlabel: str, max_value: float | None = None
+) -> plt.Axes:
+    """Share of respondents at each distinct value (shows heaping in count-like variables)."""
+    shares = series.value_counts(normalize=True).sort_index()
+    if max_value is not None:
+        shares = shares[shares.index <= max_value]
+    ax.bar(shares.index, shares.to_numpy(), color=BLUE, width=0.9)
+    ax.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel("Share of respondents")
+    ax.set_title(title)
+    ax.grid(axis="x", visible=False)
+    return ax
+
+
+def histogram_by_target(
+    df: pd.DataFrame, column: str, target: str, ax: plt.Axes, title: str, xlabel: str, bins
+) -> plt.Axes:
+    """Overlaid density histograms of a numeric column for target = 0 and 1."""
+    for value, name in [(0, "No heart disease"), (1, "Heart disease")]:
+        ax.hist(
+            df.loc[df[target] == value, column],
+            bins=bins,
+            density=True,
+            alpha=0.55,
+            color=TARGET_PALETTE[value],
+            label=name,
+        )
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel("Density")
+    ax.set_title(title)
+    ax.legend()
     return ax

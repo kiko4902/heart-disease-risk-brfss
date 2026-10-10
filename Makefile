@@ -12,7 +12,7 @@ PYTHON ?= python3.12
 setup:  ## Create .venv (Python 3.12) and install pinned dependencies + the cvd package
 	@if command -v uv >/dev/null 2>&1; then \
 		uv venv --python 3.12 .venv && \
-		uv pip install --python $(PY) -r requirements.txt -e . ; \
+		uv pip install --python .venv -r requirements.txt -e . ; \
 	else \
 		$(PYTHON) -m venv .venv && \
 		$(PY) -m pip install -r requirements.txt -e . ; \

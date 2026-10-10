@@ -189,3 +189,15 @@ def test_bootstrap_metric_ci_is_seeded():
     first = models.bootstrap_metric_ci(y, prob, metric, n_boot=50)
     assert first == models.bootstrap_metric_ci(y, prob, metric, n_boot=50)
     assert first[0] < metric(y, prob) < first[1]
+
+
+def test_tree_contributions_match_shap_and_add_up(df):
+    feats = features.FEATURES_ALL
+    pipe = models.make_lgbm_pipeline(feats, n_estimators=20, min_child_samples=10)
+    pipe.fit(df[feats], df[TARGET])
+    sample = df[feats].iloc[:40]
+    contributions, base = models.tree_contributions(pipe, sample)
+    assert list(contributions.columns) == feats
+    assert np.allclose(contributions.to_numpy(), models.shap_values(pipe, sample).values, atol=1e-6)
+    prob = 1 / (1 + np.exp(-(contributions.sum(axis=1).to_numpy() + base)))
+    assert np.allclose(prob, pipe.predict_proba(sample)[:, 1], atol=1e-6)

@@ -1,4 +1,4 @@
-.PHONY: setup data notebooks test lint app docker clean
+.PHONY: setup data notebooks test lint app docker lock clean
 
 ifeq ($(OS),Windows_NT)
 BIN := .venv/Scripts
@@ -35,11 +35,16 @@ lint:  ## Lint and check formatting
 	$(PY) -m ruff check .
 	$(PY) -m ruff format --check .
 
-app:  ## Start the Streamlit app (needs models/ from `make notebooks`)
+app:  ## Start the Streamlit app (uses the versioned models in app/model/)
 	$(PY) -m streamlit run app/app.py
 
-docker:  ## Build the app image (needs models/ from `make notebooks`)
+docker:  ## Build the slim app image
 	docker build -t heart-disease-risk-app .
+
+lock:  ## Recompile both lock files (needs uv); the app lock is constrained to the main lock
+	uv pip compile requirements.in --universal --python-version 3.12 -o requirements.txt
+	uv pip compile requirements-app.in -c requirements.txt --universal --python-version 3.12 -o requirements-app.txt
+	cp requirements-app.txt app/requirements.txt
 
 clean:
 	rm -rf .pytest_cache .ruff_cache src/*.egg-info

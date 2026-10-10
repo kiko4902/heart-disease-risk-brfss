@@ -7,7 +7,6 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-import statsmodels.api as sm
 from lightgbm import LGBMClassifier
 from sklearn.base import clone
 from sklearn.dummy import DummyClassifier
@@ -27,7 +26,8 @@ from cvd import SEED
 from cvd.data import LABELS, PROJECT_ROOT, TARGET
 from cvd.features import TreeEncoder, logit_design_matrix, make_linear_preprocessor
 
-MODELS_DIR = PROJECT_ROOT / "models"
+# Small enough (under 1 MB) to version, so the app can be deployed without retraining.
+MODELS_DIR = PROJECT_ROOT / "app" / "model"
 
 LGBM_DEFAULTS = {
     "n_estimators": 300,
@@ -46,6 +46,8 @@ LGBM_DEFAULTS = {
 # --------------------------------------------------------------------------
 def fit_logit(df: pd.DataFrame, features: list[str], target: str = TARGET):
     """Fit a statsmodels logistic regression on the design matrix of ``features``."""
+    import statsmodels.api as sm  # imported here so the app does not need statsmodels
+
     design = logit_design_matrix(df, features)
     return sm.Logit(df[target].astype(float), design).fit(disp=False, maxiter=200)
 
@@ -234,12 +236,27 @@ def shap_values(pipeline: Pipeline, X: pd.DataFrame):
         values=values,
         base_values=base,
         data=encoded.to_numpy(dtype=float),
-        display_data=_display_values(X[encoder.features]),
+        display_data=display_values(X[encoder.features]),
         feature_names=[LABELS[f] for f in encoder.features],
     )
 
 
-def _display_values(X: pd.DataFrame) -> np.ndarray:
+def tree_contributions(pipeline: Pipeline, X: pd.DataFrame) -> tuple[pd.DataFrame, np.ndarray]:
+    """Per-feature contributions (log-odds) from LightGBM's built-in TreeSHAP.
+
+    Gives the same values as :func:`shap_values` without needing the ``shap``
+    package, which keeps the app's dependencies small. Returns a data frame of
+    contributions (one row per row of ``X``, one column per feature) and the
+    base value for each row.
+    """
+    encoder = pipeline.named_steps["prep"]
+    booster = pipeline.named_steps["model"].booster_
+    raw = booster.predict(encoder.transform(X), pred_contrib=True)
+    contributions = pd.DataFrame(raw[:, :-1], index=X.index, columns=list(encoder.features))
+    return contributions, raw[:, -1]
+
+
+def display_values(X: pd.DataFrame) -> np.ndarray:
     """Original labels (not integer codes) for showing next to SHAP values."""
     shown = X.astype(object).copy()
     for col in X.columns:
@@ -253,7 +270,7 @@ def _display_values(X: pd.DataFrame) -> np.ndarray:
 # --------------------------------------------------------------------------
 def save_bundle(bundle: dict, name: str = "heart_disease_models.joblib") -> Path:
     """Save fitted pipelines plus the metadata the app needs."""
-    MODELS_DIR.mkdir(exist_ok=True)
+    MODELS_DIR.mkdir(parents=True, exist_ok=True)
     path = MODELS_DIR / name
     joblib.dump(bundle, path)
     return path

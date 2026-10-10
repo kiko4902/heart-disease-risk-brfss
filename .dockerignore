@@ -1,11 +1,7 @@
-.git
-.venv
-.pytest_cache
-.ruff_cache
-__pycache__
-*.egg-info
-data
-notebooks
-reports
-archive
-tests
+# Only src/, app/ and requirements-app.txt are needed in the image.
+*
+!src
+!app
+!requirements-app.txt
+**/__pycache__
+**/*.egg-info

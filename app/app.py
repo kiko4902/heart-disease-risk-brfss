@@ -1,16 +1,31 @@
 """Streamlit app: estimated probability of reported heart disease with a SHAP explanation.
 
-Run with `make app` after `make notebooks` has trained and saved the models.
+Run with `make app`. The trained models are versioned in app/model/ and are
+recreated by `make notebooks`.
 """
 
 from __future__ import annotations
+
+import sys
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 
-from cvd import models, plots
-from cvd.data import AGE_ORDER, CHECKUP_ORDER, DIABETES_LEVELS, GENERAL_HEALTH_ORDER, LABELS
+try:
+    import cvd  # noqa: F401
+except ImportError:  # not installed as a package, e.g. on Streamlit Community Cloud
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+
+from cvd import models, plots  # noqa: E402
+from cvd.data import (  # noqa: E402
+    AGE_ORDER,
+    CHECKUP_ORDER,
+    DIABETES_LEVELS,
+    GENERAL_HEALTH_ORDER,
+    LABELS,
+)
 
 MODEL_LABELS = {
     "all": "All predictors (lifestyle, demographics and health status)",
@@ -41,12 +56,12 @@ def predict(bundle: dict, model_key: str, row: pd.DataFrame) -> tuple[float, pd.
     pipeline = bundle["models"][model_key]
     features = bundle["features"][model_key]
     probability = float(pipeline.predict_proba(row[features])[0, 1])
-    explanation = models.shap_values(pipeline, row[features])
+    values, _ = models.tree_contributions(pipeline, row[features])
     contributions = pd.DataFrame(
         {
-            "factor": explanation.feature_names,
-            "your answer": explanation.display_data[0],
-            "contribution": explanation.values[0],
+            "factor": [LABELS[f] for f in features],
+            "your answer": models.display_values(row[features])[0],
+            "contribution": values.iloc[0].to_numpy(),
         }
     )
     order = contributions["contribution"].abs().sort_values(ascending=False).index

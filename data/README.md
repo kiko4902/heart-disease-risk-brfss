@@ -5,7 +5,7 @@ The CSV is not versioned. Get it with `make data` (or `python scripts/download_d
 | | |
 |---|---|
 | Dataset | [Cardiovascular Diseases Risk Prediction Dataset](https://www.kaggle.com/datasets/alphiree/cardiovascular-diseases-risk-prediction-dataset) (Kaggle, user `alphiree`) |
-| Origin | CDC Behavioral Risk Factor Surveillance System (BRFSS) 2021, a telephone survey of US adults. The Kaggle author selected 19 of 304 variables and removed incomplete rows. |
+| Origin | CDC Behavioral Risk Factor Surveillance System (BRFSS) 2021, a telephone survey of US adults. The Kaggle author selected 19 of 304 variables and cleaned the data; the file has no missing values, so incomplete responses were evidently removed. |
 | Licence | CC0: Public Domain (as stated on Kaggle) |
 | File | `CVD_cleaned.csv`, 32.5 MB, 308,854 rows × 19 columns |
 | SHA-256 | `0c3c399c95c9df8ba65fa36821a95c8f27609508dc6927b6a6e7034f25a492c8` |

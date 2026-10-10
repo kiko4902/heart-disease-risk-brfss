@@ -1,0 +1,18 @@
+# Direct dependencies. requirements.txt is the pinned lock compiled from this file:
+#   uv pip compile requirements.in --universal --python-version 3.12 -o requirements.txt
+pandas
+numpy
+scipy
+statsmodels
+scikit-learn
+lightgbm
+shap
+matplotlib
+seaborn
+joblib
+nbconvert
+nbformat
+ipykernel
+streamlit
+pytest
+ruff
